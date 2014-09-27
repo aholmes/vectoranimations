@@ -387,6 +387,7 @@
 
 			runOptions.fps = runOptions.fps * -1;
 			toggles.fps.value = runOptions.fps;
+			run(makeFrameMethod);
 		});
 		/* #endregion */
 
