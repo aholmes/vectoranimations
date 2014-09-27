@@ -327,7 +327,7 @@
 				updateStylesheet();
 
 				i++;
-			}, 1000);
+			}, 300);
 		});
 		/* #endregion */
 
