@@ -240,14 +240,6 @@
 					e.value = defaults.formOptions[e.name];
 				}
 			});
-
-//			var event = document.createEvent('HTMLEvents');
-//			event.initEvent('change', true, true);
-//			event.eventName = 'onchange';
-			//Array.prototype.forEach.call(toggles, function(e)
-			//{
-			//	e.dispatchEvent(event);
-			//});
 		});
 	}
 
