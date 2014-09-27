@@ -138,8 +138,6 @@
 		});
 	}
 
-	window.diskOptions = diskOptions;
-
 	configureToggles();
 
 	run();
