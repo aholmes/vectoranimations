@@ -17,16 +17,21 @@
 
 	function Disk(radius, xy)
 	{
-		var disk = document.createElement('div');
-		disk.className = 'disk';
+		this.disk = document.createElement('div');
+		this.disk.className = 'disk';
 
-		disk.style.width = (radius * 2) + 'px';
-		disk.style.height = (radius * 2) + 'px';
-		disk.style.left = (xy[0] === radius ? 0 : (xy[0] - radius)) + 'px';
-		disk.style.top = (xy[1] === radius ? 0 : (xy[1] - radius)) + 'px';
-
-		return disk;
+		this.setParams(radius, xy);
 	}
+
+	Disk.prototype.setParams = function(radius, xy)
+	{
+		this.disk.style.width = (radius * 2) + 'px';
+		this.disk.style.height = (radius * 2) + 'px';
+		this.disk.style.left = (xy[0] === radius ? 0 : (xy[0] - radius)) + 'px';
+		this.disk.style.top = (xy[1] === radius ? 0 : (xy[1] - radius)) + 'px';
+
+		return this;
+	};
 
 	function polar2cart(radius, angle)
 	{
@@ -48,20 +53,29 @@
 			ndisks_per_cycle = 8,
 			speed = 0.05;
 
-		var circle1 = Disk(0.65 * diskOptions.width, [0.65 * diskOptions.width, 0.65 * diskOptions.width]),
-			circle2 = Disk(0.42 * diskOptions.width, [0.42 * diskOptions.width, 0.42 * diskOptions.width]);
+		var disks = [];
 
-		circle2.appendChild(centeringElem);
-		circle1.appendChild(circle2);
-		edgeContainer.appendChild(circle1);
+		var circle1 = new Disk(0.65 * diskOptions.width, [0.65 * diskOptions.width, 0.65 * diskOptions.width]),
+			circle2 = new Disk(0.42 * diskOptions.width, [0.42 * diskOptions.width, 0.42 * diskOptions.width]);
+
+		circle2.disk.appendChild(centeringElem);
+		circle1.disk.appendChild(circle2.disk);
+		edgeContainer.appendChild(circle1.disk);
+
+		var delay_between_disks = 1.0 * duration / 2 / ndisks_per_cycle,
+			total_number_of_disks = parseInt(ndisks_per_cycle / speed, 10),
+			start = 1.0 / speed;
+
+		for (var i = 0; i < total_number_of_disks; i++)
+		{
+			disks.push(new Disk(0, [0, 0]));
+			centeringElem.appendChild(disks[i].disk);
+		}
 
 		function make_frame(t)
 		{
-			var delay_between_disks = 1.0 * duration / 2 / ndisks_per_cycle,
-				total_number_of_disks = parseInt(ndisks_per_cycle / speed, 10),
-				start = 1.0 / speed;
 
-			centeringElem.innerHTML = '';
+			//centeringElem.innerHTML = '';
 			for (var i = 0; i < total_number_of_disks; i++)
 			{
 				var angle = (Math.PI / ndisks_per_cycle) * (total_number_of_disks - i - 1),
@@ -71,14 +85,13 @@
 				cartCoords[0] = (cartCoords[0] + 0.5) * diskOptions.width;
 				cartCoords[1] = (cartCoords[1] + 0.5) * diskOptions.width;
 
-				var color = ((1.0 * i / ndisks_per_cycle) % 1.0),
-					circle = Disk(0.3 * diskOptions.width, cartCoords);
+				var color = ((1.0 * i / ndisks_per_cycle) % 1.0);
+
+				var circle = disks[i].setParams(0.3 * diskOptions.width, cartCoords).disk;
 
 				circle.style.borderColor = diskStyles.borderColor;
 				circle.style.backgroundColor = diskStyles.backgroundColor;
 				circle.style.opacity = diskOptions.opacity ? color : 1;
-
-				centeringElem.appendChild(circle);
 			}
 		}
 
