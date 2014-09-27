@@ -124,8 +124,21 @@ input[type="text"]
 	width : 50px;
 }
 
-:-webkit-full-screen #container
+#circle1:fullscreen
 {
-	width  : 100%;
-	height : 100%;
+	width  : 100% !important;
+	height : 100% !important;
+	zoom: 2;
+}
+:-moz-full-screen #circle1
+{
+	width  : 100% !important;
+	height : 100% !important;
+	zoom: 2;
+}
+:-webkit-full-screen #circle1
+{
+	width  : 100% !important;
+	height : 100% !important;
+	zoom: 2;
 }

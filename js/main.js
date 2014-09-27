@@ -322,11 +322,12 @@
 
 				toggles.colorbg.jscolor.fromString(bgHexValue);
 				toggles.colorborder.jscolor.fromString(borderHexValue);
-				toggles.colorbg.jscolor.onImmediateChange();
-				toggles.colorborder.jscolor.onImmediateChange();
+				diskStyles.backgroundColor = bgHexValue;
+				diskStyles.borderColor = borderHexValue;
+				updateStylesheet();
 
 				i++;
-			}, 300);
+			}, 1000);
 		});
 		/* #endregion */
 
