@@ -54,8 +54,8 @@
 
 	var diskStyles =
 	{
-		backgroundColor : 'white',
-		borderColor     : 'black'
+		backgroundColor : '#FFFFFF',
+		borderColor     : '#000000'
 	};
 
 	var diskOptions =
@@ -176,19 +176,28 @@
 			diskStyles.backgroundColor = diskStyles.borderColor;
 			diskStyles.borderColor = temp;
 
-			toggles.colorbg.value = diskStyles.backgroundColor;
-			toggles.colorborder.value = diskStyles.borderColor;
+			toggles.colorbg.jscolor.fromString(diskStyles.backgroundColor);
+			toggles.colorborder.jscolor.fromString(diskStyles.borderColor);
 		});
 
-		toggles.colorbg.addEventListener('change', function()
-		{
-			diskStyles.backgroundColor = this.value;
-		});
+		jscolor.init();
+		toggles.colorbg.jscolor = new jscolor.color(toggles.colorbg,
+			{
+				hash              : true,
+				onImmediateChange : function()
+				{
+					diskStyles.backgroundColor = this.valueElement.value;
+				}
+			});
 
-		toggles.colorborder.addEventListener('change', function()
-		{
-			diskStyles.borderColor = this.value;
-		});
+		toggles.colorborder.jscolor = new jscolor.color(toggles.colorborder,
+			{
+				hash              : true,
+				onImmediateChange : function()
+				{
+					diskStyles.borderColor = this.valueElement.value;
+				}
+			});
 		/* #endregion */
 
 		/* #region sliders */
