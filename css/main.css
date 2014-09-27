@@ -134,7 +134,7 @@ input[type="text"]
 {
 	width  : 100% !important;
 	height : 100% !important;
-	zoom: 2;
+	transform:scale(2.0);
 }
 :-webkit-full-screen #circle1
 {

@@ -148,7 +148,7 @@
 			stylesheet.insertRule('.disk {\
 				background-color: ' + diskStyles.backgroundColor + ';\
 				border-color: ' + diskStyles.borderColor + ';\
-			}', stylesheet.rules.length);
+			}', stylesheet.cssRules.length);
 		}
 
 		insertRules();
@@ -156,7 +156,7 @@
 		return function()
 		{
 			// overwrite the last rule entered
-			stylesheet.removeRule(stylesheet.rules.length - 1);
+			stylesheet.deleteRule(stylesheet.cssRules.length - 1);
 			insertRules();
 		};
 	})();
