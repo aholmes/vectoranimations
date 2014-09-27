@@ -15,20 +15,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="css/normalize.css">
     <link rel="stylesheet" href="css/main.css">
+    <style id="application-stylesheet"></style>
     <script src="js/vendor/jscolor/jscolor.js"></script>
 </head>
 <body>
-<div class="options">
+<div id="options">
+    <a href="" id="hide-options">Hide Options</a>
     <label><input type="checkbox" name="opacity"/> Opacity</label>
     <label><input type="checkbox" name="inverse"/> Inverse</label>
     <label><input type="checkbox" name="reverse"/> Reverse</label>
+    <label><input type="checkbox" name="chill"/> Chill</label>
     <label><input type="checkbox" name="running" checked="checked"/> Running</label>
     <label><input type="text" name="colorbg" value="#FFFFFF"> BG color</label>
     <label><input type="text" name="colorborder" value="#000000"> Border color</label>
     <label><input type="range" step="10" min="0" max="800" value="400" name="width"> Width</label>
     <label><input type="range" step="1" min="-60" max="60" value="20" name="fps"> FPS</label>
     <button name="reset">Reset</button>
+    <button name="fullscreen">Fullscreen</button>
 </div>
+<div id="toggle-options"><a href="" id="show-options">Show Options</a></div>
 
 <div class="container" id="container"></div>
 </body>

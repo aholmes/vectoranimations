@@ -2,6 +2,13 @@
 {
 	'use strict';
 
+	/**
+	 * Copy an object onto a new one
+	 * @param {Object} newObj The new or already existing object
+	 * @param {Object} oldObj The old object to copy
+	 * @param {Boolean} [deep=false] Whether to copy object keys and to follow other objects
+	 * @returns {Object} newObj
+	 */
 	function copyObj(newObj, oldObj, deep)
 	{
 		var keys = Object.keys(oldObj);
@@ -26,6 +33,50 @@
 		return newObj;
 	}
 
+	/**
+	 * Convert polar coords to cartesian coords
+	 * @param {Number} radius
+	 * @param {Number} angle
+	 * @returns {[Number, Number]} 0 is x, 1 is y
+	 */
+	function polar2cart(radius, angle)
+	{
+		return [
+			radius * Math.cos(angle),
+			radius * Math.sin(angle)
+		];
+	}
+
+	/**
+	 * Convert a byte to base 16
+	 * @param {Number} n
+	 * @returns {string}
+	 */
+	function byte2Hex(n)
+	{
+		var nybHexString = "0123456789ABCDEF";
+		return String(nybHexString.substr((n >> 4) & 0x0F,1)) + nybHexString.substr(n & 0x0F,1);
+	}
+
+	/**
+	 * Convert a RGB color representation to a hex color representation
+	 * @param {Number} r
+	 * @param {Number} g
+	 * @param {Number} b
+	 * @returns {string}
+	 * @constructor
+	 */
+	function RGB2Color(r,g,b)
+	{
+		return '#' + byte2Hex(r) + byte2Hex(g) + byte2Hex(b);
+	}
+
+	/**
+	 * The object container for the disks that animate
+	 * @param {Number} radius Radius of disk
+	 * @param {[Number, Number]} xy cartesian coords of disk
+	 * @constructor
+	 */
 	function Disk(radius, xy)
 	{
 		this.disk = document.createElement('div');
@@ -34,6 +85,12 @@
 		this.setParams(radius, xy);
 	}
 
+	/**
+	 * Set the radius and cartesian coords of the disk
+	 * @param {Number} radius
+	 * @param {Number} xy
+	 * @returns {Disk}
+	 */
 	Disk.prototype.setParams = function(radius, xy)
 	{
 		this.disk.style.width = (radius * 2) + 'px';
@@ -44,20 +101,20 @@
 		return this;
 	};
 
-	function polar2cart(radius, angle)
-	{
-		return [
-			radius * Math.cos(angle),
-			radius * Math.sin(angle)
-		];
-	}
-
+	/**
+	 * CSS styles that apply to the animated disks
+	 * @type {{backgroundColor: string, borderColor: string}}
+	 */
 	var diskStyles =
 	{
 		backgroundColor : '#FFFFFF',
 		borderColor     : '#000000'
 	};
 
+	/**
+	 * Run-time options that apply to the disks
+	 * @type {{opacity: boolean, running: boolean, width: number}}
+	 */
 	var diskOptions =
 	{
 		opacity : false,
@@ -65,16 +122,50 @@
 		width   : 400
 	};
 
+	/**
+	 * Run-time options that alter the behavior of the animation
+	 * @type {{duration: number, fps: number, ndisks_per_cycle: number, speed: number, frameRate: number, chillInterval: number}}
+	 */
 	var runOptions =
 	{
 		duration         : 2.0,
 		fps              : 20,
 		ndisks_per_cycle : 8,
 		speed            : 0.05,
-		frameRate        : 40.0 // duration * fps
+		frameRate        : 40.0, // duration * fps
+		chillInterval    : undefined
 	};
 
-	function bootstrap()
+	/**
+	 * Update the application stylesheet with the diskStyles rules
+	 */
+	var updateStylesheet = (function bootstrapStylesheet()
+	{
+		var stylesheet = document.getElementById('application-stylesheet').sheet;
+
+		function insertRules()
+		{
+			stylesheet.insertRule('.disk {\
+				background-color: ' + diskStyles.backgroundColor + ';\
+				border-color: ' + diskStyles.borderColor + ';\
+			}', stylesheet.rules.length);
+		}
+
+		insertRules();
+
+		return function()
+		{
+			// overwrite the last rule entered
+			stylesheet.removeRule(stylesheet.rules.length - 1);
+			insertRules();
+		};
+	})();
+
+	/**
+	 * Bootstrap the animation application and get the method with which to draw a new frame
+	 * @param {Number} t The current frame
+	 */
+	var makeFrameMethod = (function bootstrap()
 	{
 		var edgeContainer = document.getElementById('container'),
 			centeringElem = document.createElement('div');
@@ -83,6 +174,11 @@
 
 		var circle1 = new Disk(0.65 * diskOptions.width, [0.65 * diskOptions.width, 0.65 * diskOptions.width]),
 			circle2 = new Disk(0.42 * diskOptions.width, [0.42 * diskOptions.width, 0.42 * diskOptions.width]);
+
+		circle1.disk.id = 'circle1';
+		circle2.disk.id = 'circle2';
+		circle1.disk.className = '';
+		circle2.disk.className = '';
 
 		circle2.disk.appendChild(centeringElem);
 		circle1.disk.appendChild(circle2.disk);
@@ -112,19 +208,23 @@
 				cartCoords[0] = (cartCoords[0] + 0.5) * diskOptions.width;
 				cartCoords[1] = (cartCoords[1] + 0.5) * diskOptions.width;
 
-				color = ((1.0 * i / runOptions.ndisks_per_cycle) % 1.0);
+				color = ((i / runOptions.ndisks_per_cycle) % 1.0);
 
 				circle = disks[i].setParams(0.3 * diskOptions.width, cartCoords).disk;
 
-				circle.style.borderColor = diskStyles.borderColor;
-				circle.style.backgroundColor = diskStyles.backgroundColor;
+				//circle.style.borderColor = diskStyles.borderColor;
+				//circle.style.backgroundColor = diskStyles.backgroundColor;
 				circle.style.opacity = diskOptions.opacity ? color : 1;
 			}
 		}
 
 		return make_frame;
-	}
+	})();
 
+	/**
+	 * Start the application loop.
+	 * @param {Function} make_frame The method returned from bootstrap().
+	 */
 	function run(make_frame)
 	{
 		if (run.interval)
@@ -152,10 +252,27 @@
 		}, runOptions.frameRate);
 	}
 
-	var makeFrameMethod = bootstrap();
-	(function configureToggles()
+	/**
+	 * Bootstrap the options dialog
+	 */
+	(function bootstrapOptions()
 	{
-		var toggles = document.getElementsByTagName('input');
+		var toggles = document.getElementsByTagName('input'),
+			options = document.getElementById('options'),
+			hideOptions = document.getElementById('hide-options'),
+			showOptions = document.getElementById('show-options');
+
+		hideOptions.addEventListener('click', function(e)
+		{
+			e.preventDefault();
+			options.className = 'hide';
+		});
+
+		showOptions.addEventListener('click', function(e)
+		{
+			e.preventDefault();
+			options.className = options.className.replace('hide', '');
+		});
 
 		/* #region checkboxes */
 		toggles.opacity.addEventListener('change', function()
@@ -166,6 +283,47 @@
 		toggles.running.addEventListener('change', function()
 		{
 			diskOptions.running = this.checked;
+		});
+
+		/**
+		 * Generate colors and enjoy the experience
+		 */
+		toggles.chill.addEventListener('change', function()
+		{
+			if (runOptions.chillInterval)
+			{
+				window.clearInterval(runOptions.chillInterval);
+				runOptions.chillInterval = undefined;
+			}
+
+			if (this.checked === false)
+			{
+				return;
+			}
+
+			var i = 0;
+			runOptions.chillInterval = window.setInterval(function()
+			{
+				if (i === 255)
+				{
+					i = 0;
+				}
+
+				// good reference on this: http://krazydad.com/tutorials/makecolors.php
+				var phaseShiftRed = 0,
+					phaseShiftGreen = 2 * Math.PI / 3,
+					phaseShiftBlue = 4 * Math.PI / 3;
+
+				var r = parseInt(Math.sin(0.01 * i + phaseShiftRed) * 128 + 127, 10),
+					g = parseInt(Math.sin(0.01 * i + phaseShiftGreen) * 128 + 127, 10),
+					b = parseInt(Math.sin(0.01 * i + phaseShiftBlue) * 128 + 127, 10),
+					hexValue = RGB2Color(r, g, b);
+
+				toggles.colorbg.jscolor.fromString(hexValue);
+				toggles.colorbg.jscolor.onImmediateChange();
+
+				i++;
+			}, 100);
 		});
 		/* #endregion */
 
@@ -187,6 +345,7 @@
 				onImmediateChange : function()
 				{
 					diskStyles.backgroundColor = this.valueElement.value;
+					updateStylesheet();
 				}
 			});
 
@@ -196,6 +355,7 @@
 				onImmediateChange : function()
 				{
 					diskStyles.borderColor = this.valueElement.value;
+					updateStylesheet();
 				}
 			});
 		/* #endregion */
@@ -218,13 +378,17 @@
 
 		toggles.reverse.addEventListener('change', function()
 		{
-			if (this.checked && runOptions.fps < 0) return;
+			if (this.checked && runOptions.fps < 0)
+			{
+				return;
+			}
 
 			runOptions.fps = runOptions.fps * -1;
 			toggles.fps.value = runOptions.fps;
 		});
 		/* #endregion */
 
+		/* #region buttons */
 		var buttons = document.getElementsByTagName('button');
 		var defaults =
 		{
@@ -256,6 +420,25 @@
 				}
 			});
 		});
+
+		buttons.fullscreen.addEventListener('click', function()
+		{
+			var elem = document.getElementById('container');
+			if (elem.requestFullscreen)
+			{
+				elem.requestFullscreen();
+			} else if (elem.msRequestFullscreen)
+			{
+				elem.msRequestFullscreen();
+			} else if (elem.mozRequestFullScreen)
+			{
+				elem.mozRequestFullScreen();
+			} else if (elem.webkitRequestFullscreen)
+			{
+				elem.webkitRequestFullscreen();
+			}
+		});
+		/* #endregion */
 	})();
 
 	run(makeFrameMethod);
