@@ -340,6 +340,7 @@
 
 			toggles.colorbg.jscolor.fromString(diskStyles.backgroundColor);
 			toggles.colorborder.jscolor.fromString(diskStyles.borderColor);
+			updateStylesheet();
 		});
 
 		jscolor.init();
