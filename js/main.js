@@ -2,28 +2,6 @@
 {
 	'use strict';
 
-	var diskStyles =
-	{
-		backgroundColor : 'white',
-		borderColor     : 'black'
-	};
-
-	var diskOptions =
-	{
-		opacity : false,
-		running : true,
-		width   : 400
-	};
-
-	var runOptions =
-	{
-		duration         : 2.0,
-		fps              : 20,
-		ndisks_per_cycle : 8,
-		speed            : 0.05,
-		frameRate        : 40.0 // duration * fps
-	};
-
 	function copyObj(newObj, oldObj, deep)
 	{
 		var keys = Object.keys(oldObj);
@@ -32,10 +10,9 @@
 		{
 			for (var i = 0; i < keys.length; i++)
 			{
-				if (typeof oldObj[keys[i]] === 'object')
-				{
-					newObj[keys[i]] = copyObj(oldObj[keys[i]], true);
-				}
+				newObj[keys[i]] = typeof oldObj[keys[i]] === 'object'
+					? copyObj({}, oldObj[keys[i]], true)
+					: oldObj[keys[i]];
 			}
 		}
 		else
@@ -74,6 +51,28 @@
 			radius * Math.sin(angle)
 		];
 	}
+
+	var diskStyles =
+	{
+		backgroundColor : 'white',
+		borderColor     : 'black'
+	};
+
+	var diskOptions =
+	{
+		opacity : false,
+		running : true,
+		width   : 400
+	};
+
+	var runOptions =
+	{
+		duration         : 2.0,
+		fps              : 20,
+		ndisks_per_cycle : 8,
+		speed            : 0.05,
+		frameRate        : 40.0 // duration * fps
+	};
 
 	function bootstrap()
 	{
@@ -133,7 +132,7 @@
 			window.clearInterval(run.interval);
 		}
 
-		var t = 0;
+		run.t = run.t || 0;
 		run.interval = window.setInterval(function()
 		{
 			if (!diskOptions.running)
@@ -141,44 +140,44 @@
 				return;
 			}
 
-			var frame = t / runOptions.fps;
-			if (t === runOptions.frameRate)
+			var frame = run.t / runOptions.fps;
+			if (run.t === runOptions.frameRate)
 			{
-				t = 0;
+				run.t = 0;
 			}
 
 			make_frame(frame);
 
-			t++;
+			run.t++;
 		}, runOptions.frameRate);
 	}
 
 	var makeFrameMethod = bootstrap();
-
-	function configureToggles()
+	(function configureToggles()
 	{
 		var toggles = document.getElementsByTagName('input');
 
+		/* #region checkboxes */
 		toggles.opacity.addEventListener('change', function()
 		{
 			diskOptions.opacity = this.checked;
-		});
-
-		toggles.inverse.addEventListener('change', function(e)
-		{
-			var temp = diskStyles.backgroundColor;
-			diskStyles.backgroundColor = diskStyles.borderColor;
-			diskStyles.borderColor = temp;
 		});
 
 		toggles.running.addEventListener('change', function()
 		{
 			diskOptions.running = this.checked;
 		});
+		/* #endregion */
 
-		toggles.width.addEventListener('change', function()
+		/* #region inverse checkbox and color inputs */
+		toggles.inverse.addEventListener('change', function(e)
 		{
-			diskOptions.width = this.value;
+			var temp = diskStyles.backgroundColor;
+			diskStyles.backgroundColor = diskStyles.borderColor;
+			diskStyles.borderColor = temp;
+
+			toggles.colorbg.value = diskStyles.backgroundColor;
+			toggles.colorborder.value = diskStyles.borderColor;
 		});
 
 		toggles.colorbg.addEventListener('change', function()
@@ -190,25 +189,32 @@
 		{
 			diskStyles.borderColor = this.value;
 		});
+		/* #endregion */
 
-		toggles.reverse.addEventListener('change', function()
+		/* #region sliders */
+		toggles.width.addEventListener('input', function()
 		{
-			if (this.checked && runOptions.fps < 0)
-			{
-				return;
-			}
-
-			runOptions.fps = runOptions.fps * -1;
-			toggles.fps.value = runOptions.fps;
+			diskOptions.width = this.value;
 		});
+		/* #endregion */
 
-		toggles.fps.addEventListener('change', function()
+		/* #region FPS slider and reverse toggle */
+		toggles.fps.addEventListener('input', function()
 		{
 			toggles.reverse.checked = this.value < 0;
 
 			runOptions.fps = this.value;
 			run(makeFrameMethod);
 		});
+
+		toggles.reverse.addEventListener('change', function()
+		{
+			if (this.checked && runOptions.fps < 0) return;
+
+			runOptions.fps = runOptions.fps * -1;
+			toggles.fps.value = runOptions.fps;
+		});
+		/* #endregion */
 
 		var buttons = document.getElementsByTagName('button');
 		var defaults =
@@ -241,9 +247,7 @@
 				}
 			});
 		});
-	}
-
-	configureToggles();
+	})();
 
 	run(makeFrameMethod);
 })();
