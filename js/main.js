@@ -1,4 +1,4 @@
-(function ()
+(function()
 {
 	'use strict';
 
@@ -12,8 +12,42 @@
 	{
 		opacity : false,
 		running : true,
-		width : 400
+		width   : 400
 	};
+
+	var runOptions =
+	{
+		duration         : 2.0,
+		fps              : 20,
+		ndisks_per_cycle : 8,
+		speed            : 0.05,
+		frameRate        : 40.0 // duration * fps
+	};
+
+	function copyObj(newObj, oldObj, deep)
+	{
+		var keys = Object.keys(oldObj);
+
+		if (deep)
+		{
+			for (var i = 0; i < keys.length; i++)
+			{
+				if (typeof oldObj[keys[i]] === 'object')
+				{
+					newObj[keys[i]] = copyObj(oldObj[keys[i]], true);
+				}
+			}
+		}
+		else
+		{
+			for (var i = 0; i < keys.length; i++)
+			{
+				newObj[keys[i]] = oldObj[keys[i]];
+			}
+		}
+
+		return newObj;
+	}
 
 	function Disk(radius, xy)
 	{
@@ -41,19 +75,12 @@
 		];
 	}
 
-	function run()
+	function bootstrap()
 	{
 		var edgeContainer = document.getElementById('container'),
 			centeringElem = document.createElement('div');
 
 		centeringElem.className = 'center';
-
-		var duration = 2.0,
-			fps = 20,
-			ndisks_per_cycle = 8,
-			speed = 0.05;
-
-		var disks = [];
 
 		var circle1 = new Disk(0.65 * diskOptions.width, [0.65 * diskOptions.width, 0.65 * diskOptions.width]),
 			circle2 = new Disk(0.42 * diskOptions.width, [0.42 * diskOptions.width, 0.42 * diskOptions.width]);
@@ -62,10 +89,11 @@
 		circle1.disk.appendChild(circle2.disk);
 		edgeContainer.appendChild(circle1.disk);
 
-		var delay_between_disks = 1.0 * duration / 2 / ndisks_per_cycle,
-			total_number_of_disks = parseInt(ndisks_per_cycle / speed, 10),
-			start = 1.0 / speed;
+		var delay_between_disks = 1.0 * runOptions.duration / 2 / runOptions.ndisks_per_cycle,
+			total_number_of_disks = parseInt(runOptions.ndisks_per_cycle / runOptions.speed, 10),
+			start = 1.0 / runOptions.speed;
 
+		var disks = [];
 		for (var i = 0; i < total_number_of_disks; i++)
 		{
 			disks.push(new Disk(0, [0, 0]));
@@ -74,20 +102,20 @@
 
 		function make_frame(t)
 		{
+			var angle, radius, cartCoords, color, circle;
 
-			//centeringElem.innerHTML = '';
 			for (var i = 0; i < total_number_of_disks; i++)
 			{
-				var angle = (Math.PI / ndisks_per_cycle) * (total_number_of_disks - i - 1),
-					radius = Math.max(0, 0.05 * (t + start - delay_between_disks * (total_number_of_disks - i - 1)));
+				angle = (Math.PI / runOptions.ndisks_per_cycle) * (total_number_of_disks - i - 1);
+				radius = Math.max(0, 0.05 * (t + start - delay_between_disks * (total_number_of_disks - i - 1)));
 
-				var cartCoords = polar2cart(radius, angle);
+				cartCoords = polar2cart(radius, angle);
 				cartCoords[0] = (cartCoords[0] + 0.5) * diskOptions.width;
 				cartCoords[1] = (cartCoords[1] + 0.5) * diskOptions.width;
 
-				var color = ((1.0 * i / ndisks_per_cycle) % 1.0);
+				color = ((1.0 * i / runOptions.ndisks_per_cycle) % 1.0);
 
-				var circle = disks[i].setParams(0.3 * diskOptions.width, cartCoords).disk;
+				circle = disks[i].setParams(0.3 * diskOptions.width, cartCoords).disk;
 
 				circle.style.borderColor = diskStyles.borderColor;
 				circle.style.backgroundColor = diskStyles.backgroundColor;
@@ -95,15 +123,26 @@
 			}
 		}
 
-		var t = 0,
-			frameRate = duration * fps;
+		return make_frame;
+	}
 
-		window.setInterval(function ()
+	function run(make_frame)
+	{
+		if (run.interval)
 		{
-			if (!diskOptions.running) return;
+			window.clearInterval(run.interval);
+		}
 
-			var frame = t / fps;
-			if (t === frameRate)
+		var t = 0;
+		run.interval = window.setInterval(function()
+		{
+			if (!diskOptions.running)
+			{
+				return;
+			}
+
+			var frame = t / runOptions.fps;
+			if (t === runOptions.frameRate)
 			{
 				t = 0;
 			}
@@ -111,8 +150,10 @@
 			make_frame(frame);
 
 			t++;
-		}, frameRate);
+		}, runOptions.frameRate);
 	}
+
+	var makeFrameMethod = bootstrap();
 
 	function configureToggles()
 	{
@@ -123,7 +164,7 @@
 			diskOptions.opacity = this.checked;
 		});
 
-		toggles.inverse.addEventListener('change', function()
+		toggles.inverse.addEventListener('change', function(e)
 		{
 			var temp = diskStyles.backgroundColor;
 			diskStyles.backgroundColor = diskStyles.borderColor;
@@ -149,9 +190,68 @@
 		{
 			diskStyles.borderColor = this.value;
 		});
+
+		toggles.reverse.addEventListener('change', function()
+		{
+			if (this.checked && runOptions.fps < 0)
+			{
+				return;
+			}
+
+			runOptions.fps = runOptions.fps * -1;
+			toggles.fps.value = runOptions.fps;
+		});
+
+		toggles.fps.addEventListener('change', function()
+		{
+			toggles.reverse.checked = this.value < 0;
+
+			runOptions.fps = this.value;
+			run(makeFrameMethod);
+		});
+
+		var buttons = document.getElementsByTagName('button');
+		var defaults =
+		{
+			diskStyles  : copyObj({}, diskStyles),
+			diskOptions : copyObj({}, diskOptions),
+			runOptions  : copyObj({}, runOptions),
+			formOptions : {}
+		};
+		Array.prototype.forEach.call(toggles, function(e)
+		{
+			defaults.formOptions[e.name] = e.type === 'checkbox' ? e.checked : e.value;
+		});
+
+		buttons.reset.addEventListener('click', function()
+		{
+			copyObj(diskStyles, defaults.diskStyles);
+			copyObj(diskOptions, defaults.diskOptions);
+			copyObj(runOptions, defaults.runOptions);
+
+			Array.prototype.forEach.call(toggles, function(e)
+			{
+				if (e.type === 'checkbox')
+				{
+					e.checked = defaults.formOptions[e.name];
+				}
+				else
+				{
+					e.value = defaults.formOptions[e.name];
+				}
+			});
+
+//			var event = document.createEvent('HTMLEvents');
+//			event.initEvent('change', true, true);
+//			event.eventName = 'onchange';
+			//Array.prototype.forEach.call(toggles, function(e)
+			//{
+			//	e.dispatchEvent(event);
+			//});
+		});
 	}
 
 	configureToggles();
 
-	run();
+	run(makeFrameMethod);
 })();
