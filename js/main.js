@@ -55,7 +55,7 @@
 	function byte2Hex(n)
 	{
 		var nybHexString = "0123456789ABCDEF";
-		return String(nybHexString.substr((n >> 4) & 0x0F,1)) + nybHexString.substr(n & 0x0F,1);
+		return String(nybHexString.substr((n >> 4) & 0x0F, 1)) + nybHexString.substr(n & 0x0F, 1);
 	}
 
 	/**
@@ -66,7 +66,7 @@
 	 * @returns {string}
 	 * @constructor
 	 */
-	function RGB2Color(r,g,b)
+	function RGB2Color(r, g, b)
 	{
 		return '#' + byte2Hex(r) + byte2Hex(g) + byte2Hex(b);
 	}
@@ -314,16 +314,19 @@
 					phaseShiftGreen = 2 * Math.PI / 3,
 					phaseShiftBlue = 4 * Math.PI / 3;
 
-				var r = parseInt(Math.sin(0.01 * i + phaseShiftRed) * 128 + 127, 10),
-					g = parseInt(Math.sin(0.01 * i + phaseShiftGreen) * 128 + 127, 10),
-					b = parseInt(Math.sin(0.01 * i + phaseShiftBlue) * 128 + 127, 10),
-					hexValue = RGB2Color(r, g, b);
+				var r = Math.sin(0.01 * i + phaseShiftRed) * 128 + 127,
+					g = Math.sin(0.01 * i + phaseShiftGreen) * 128 + 127,
+					b = Math.sin(0.01 * i + phaseShiftBlue) * 128 + 127,
+					bgHexValue = RGB2Color(r, g, b),
+					borderHexValue = RGB2Color(255 - r, 255 - g, 255 - b); // border is the inverse of the bg
 
-				toggles.colorbg.jscolor.fromString(hexValue);
+				toggles.colorbg.jscolor.fromString(bgHexValue);
+				toggles.colorborder.jscolor.fromString(borderHexValue);
 				toggles.colorbg.jscolor.onImmediateChange();
+				toggles.colorborder.jscolor.onImmediateChange();
 
 				i++;
-			}, 100);
+			}, 300);
 		});
 		/* #endregion */
 
@@ -378,10 +381,7 @@
 
 		toggles.reverse.addEventListener('change', function()
 		{
-			if (this.checked && runOptions.fps < 0)
-			{
-				return;
-			}
+			if (this.checked && runOptions.fps < 0) return;
 
 			runOptions.fps = runOptions.fps * -1;
 			toggles.fps.value = runOptions.fps;
