@@ -126,25 +126,52 @@ input[type="text"]
 
 #circle1:fullscreen
 {
-	width  : 100% !important;
-	height : 100% !important;
-	transform:scale(2.0);
+	width     : 100% !important;
+	height    : 100% !important;
+	transform : scale(2.0);
 }
+
 :-ms-fullscreen #circle1
 {
-	width  : 100% !important;
-	height : 100% !important;
-	transform:scale(2.0);
+	width     : 100% !important;
+	height    : 100% !important;
+	transform : scale(2.0);
 }
+
 :-moz-full-screen #circle1
 {
-	width  : 100% !important;
-	height : 100% !important;
-	transform:scale(2.0);
+	width     : 100% !important;
+	height    : 100% !important;
+	transform : scale(2.0);
 }
+
 :-webkit-full-screen #circle1
 {
-	width  : 100% !important;
-	height : 100% !important;
-	transform:scale(2.0);
+	width     : 100% !important;
+	height    : 100% !important;
+	transform : scale(2.0);
+}
+
+@media (max-width : 640px)
+{
+	#options
+	{
+		width         : 100%;
+		border-radius : 0;
+	}
+
+	#container
+	{
+		overflow : hidden;
+	}
+
+	#circle1
+	{
+		position      : relative;
+		right         : auto;
+		bottom        : auto;
+		width         : 100% !important;
+		margin        : 0 0 0 -10px;
+		border-radius : 0;
+	}
 }
