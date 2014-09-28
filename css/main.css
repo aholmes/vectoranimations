@@ -15,17 +15,6 @@ a:active, a:visited, a:hover, a:link
 	text-decoration : none;
 }
 
-.center
-{
-	position : absolute;
-	/* sort of a hack to center the generated circles. something is wrong with my math. */
-	top      : -35px;
-	left     : -35px;
-	width    : 100%;
-	height   : 100%;
-	margin   : 0;
-}
-
 #canvas,
 #circle1,
 #circle2
@@ -127,32 +116,46 @@ input[type="text"]
 	width : 50px;
 }
 
-#circle1:fullscreen
+#circle1:fullscreen,
+#canvas:fullscreen
 {
 	width     : 100% !important;
 	height    : 100% !important;
 	transform : scale(2.0);
 }
 
-:-ms-fullscreen #circle1
+:-ms-fullscreen#circle1
+{
+	width     : 100% !important;
+	height    : 100% !important;
+	transform : scale(2.0);
+}
+:-ms-full-screen#canvas
+{
+	transform : scale(4.0);
+}
+
+:-moz-full-screen#circle1
+{
+	width     : 100% !important;
+	height    : 100% !important;
+	transform : scale(2.0);
+}
+:-moz-full-screen#canvas
+{
+	transform : scale(2.0);
+}
+
+:-webkit-full-screen#circle1
 {
 	width     : 100% !important;
 	height    : 100% !important;
 	transform : scale(2.0);
 }
 
-:-moz-full-screen #circle1
+:-webkit-full-screen#canvas
 {
-	width     : 100% !important;
-	height    : 100% !important;
-	transform : scale(2.0);
-}
-
-:-webkit-full-screen #circle1
-{
-	width     : 100% !important;
-	height    : 100% !important;
-	transform : scale(2.0);
+	transform : scale(4.0);
 }
 
 @media (max-width : 640px)

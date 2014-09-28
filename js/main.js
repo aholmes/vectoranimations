@@ -64,7 +64,6 @@
 	 * @param {Number} g
 	 * @param {Number} b
 	 * @returns {string}
-	 * @constructor
 	 */
 	function RGB2Color(r, g, b)
 	{
@@ -72,10 +71,9 @@
 	}
 
 	/**
-	 *
-	 * @param hex
+	 * Get the base-10 representation of a hex string
+	 * @param {String} hex
 	 * @returns {Number}
-	 * @constructor
 	 */
 	function Hex2Num(hex)
 	{
@@ -89,7 +87,9 @@
 	var diskStyles =
 	{
 		backgroundColor : '#FFFFFF',
-		borderColor     : '#000000'
+		borderColor     : '#000000',
+		opacity         : 1,
+		stroke          : 5
 	};
 
 	/**
@@ -125,8 +125,8 @@
 		getGraphics = function()
 		{
 			return new PIXI.Graphics()
-				.beginFill(Hex2Num(diskStyles.backgroundColor))
-				.lineStyle(5, Hex2Num(diskStyles.borderColor), 1);
+				.beginFill(Hex2Num(diskStyles.backgroundColor), diskStyles.opacity)
+				.lineStyle(diskStyles.stroke, Hex2Num(diskStyles.borderColor), diskStyles.opacity);
 		};
 
 		runModeHelpers.Graphics = getGraphics();
@@ -165,8 +165,8 @@
 			this.disk = runModeHelpers.Graphics;
 
 			this.disk.drawCircle(
-				xy[0] + (radius / 2),// === radius ? 0 : (xy[0] - radius)),
-				xy[1] + (radius / 2),// === radius ? 0 : (xy[1] - radius)),
+				xy[0],
+				xy[1],
 				radius
 			);
 		}
@@ -195,6 +195,8 @@
 	 */
 	var updateStylesheet = (function bootstrapStylesheet()
 	{
+		if (runOptions.mode !== 'dom') return function(){};
+
 		var stylesheet = document.getElementById('application-stylesheet').sheet;
 
 		function insertRules()
@@ -225,13 +227,10 @@
 			total_number_of_disks = parseInt(runOptions.ndisks_per_cycle / runOptions.speed, 10),
 			start = 1.0 / runOptions.speed;
 
-		var container = document.getElementById('container'),
-			centeringElem = document.createElement('div');
+		var container = document.getElementById('container');
 
 		if (runOptions.mode === 'dom')
 		{
-			centeringElem.className = 'center';
-
 			var circle1 = new Disk(0.65 * diskOptions.width, [0.65 * diskOptions.width, 0.65 * diskOptions.width]),
 				circle2 = new Disk(0.42 * diskOptions.width, [0.42 * diskOptions.width, 0.42 * diskOptions.width]);
 
@@ -240,7 +239,6 @@
 			circle1.disk.className = '';
 			circle2.disk.className = '';
 
-			circle2.disk.appendChild(centeringElem);
 			circle1.disk.appendChild(circle2.disk);
 			container.appendChild(circle1.disk);
 
@@ -248,14 +246,14 @@
 			for (var i = 0; i < total_number_of_disks; i++)
 			{
 				disks.push(new Disk(0, [0, 0]));
-				centeringElem.appendChild(disks[i].disk);
+				circle2.disk.appendChild(disks[i].disk);
 			}
 		}
 		else
 		{
 			runModeHelpers.Renderer = new PIXI.autoDetectRenderer(
-				0.65 * diskOptions.width * 2,
-				0.65 * diskOptions.width * 2,
+				0.42 * diskOptions.width * 2,
+				0.42 * diskOptions.width * 2,
 				null, // view
 				false, // transparent
 				true // antialias
@@ -277,8 +275,8 @@
 					radius = Math.max(0, 0.05 * (t + start - delay_between_disks * (total_number_of_disks - i - 1)));
 
 					cartCoords = polar2cart(radius, angle);
-					cartCoords[0] = (cartCoords[0] + 0.5) * diskOptions.width;
-					cartCoords[1] = (cartCoords[1] + 0.5) * diskOptions.width;
+					cartCoords[0] = (cartCoords[0] + 0.5) * parseInt(circle2.disk.style.width, 10);
+					cartCoords[1] = (cartCoords[1] + 0.5) * parseInt(circle2.disk.style.height, 10);
 
 					color = ((i / runOptions.ndisks_per_cycle) % 1.0);
 
@@ -299,10 +297,18 @@
 				    radius = Math.max(0, 0.05 * (t + start - delay_between_disks * (total_number_of_disks - i - 1)));
 
 				    cartCoords = polar2cart(radius, angle);
-				    cartCoords[0] = (cartCoords[0] + 0.5) * diskOptions.width;
-				    cartCoords[1] = (cartCoords[1] + 0.5) * diskOptions.width;
+				    cartCoords[0] = (cartCoords[0] + 0.5) * runModeHelpers.Renderer.width;
+				    cartCoords[1] = (cartCoords[1] + 0.5) * runModeHelpers.Renderer.height;
 
-				    color = ((i / runOptions.ndisks_per_cycle) % 1.0);
+				    if (diskOptions.opacity)
+				    {
+					    color = ((i / runOptions.ndisks_per_cycle) % 1.0);
+
+						runModeHelpers.Graphics
+							.endFill()
+							.beginFill(Hex2Num(diskStyles.backgroundColor), color)
+							.lineStyle(diskStyles.stroke, Hex2Num(diskStyles.borderColor), color);
+				    }
 
 				    new Disk(0.3 * diskOptions.width, cartCoords);
 			    }
@@ -374,20 +380,25 @@
 		 */
 		toggles.chill.addEventListener('change', function()
 		{
-			if (runOptions.chillInterval)
-			{
-				window.clearInterval(runOptions.chillInterval);
-				runOptions.chillInterval = undefined;
-			}
+			var self = this;
 
-			if (this.checked === false)
-			{
-				return;
-			}
+			if (this.checked === false) return;
 
-			var i = 0;
-			runOptions.chillInterval = window.setInterval(function()
+			var i = 0, interval = 10, calls = 0;
+			function run()
 			{
+				if (self.checked === false) return;
+
+				if (calls === interval)
+				{
+					calls = 0;
+				}
+				else
+				{
+					calls++;
+					return requestAnimFrame(run);
+				}
+
 				if (i === 255)
 				{
 					i = 0;
@@ -411,7 +422,10 @@
 				updateStylesheet();
 
 				i++;
-			}, 300);
+				return requestAnimFrame(run);
+			}
+
+			run();
 		});
 		/* #endregion */
 
@@ -508,7 +522,7 @@
 
 		buttons.fullscreen.addEventListener('click', function()
 		{
-			var elem = document.getElementById('container');
+			var elem = document.getElementById('container').childNodes[0];
 			if (elem.requestFullscreen)
 			{
 				elem.requestFullscreen();
