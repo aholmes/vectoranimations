@@ -165,8 +165,8 @@
 			this.disk = runModeHelpers.Graphics;
 
 			this.disk.drawCircle(
-				xy[0],// === radius ? 0 : (xy[0] - radius)),
-				xy[1],// === radius ? 0 : (xy[1] - radius)),
+				xy[0] + (radius / 2),// === radius ? 0 : (xy[0] - radius)),
+				xy[1] + (radius / 2),// === radius ? 0 : (xy[1] - radius)),
 				radius
 			);
 		}
@@ -462,7 +462,6 @@
 			toggles.reverse.checked = this.value < 0;
 
 			runOptions.fps = this.value;
-			run(makeFrameMethod);
 		});
 
 		toggles.reverse.addEventListener('change', function()
@@ -471,7 +470,6 @@
 
 			runOptions.fps = runOptions.fps * -1;
 			toggles.fps.value = runOptions.fps;
-			run(makeFrameMethod);
 		});
 		/* #endregion */
 
