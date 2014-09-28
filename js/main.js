@@ -72,34 +72,15 @@
 	}
 
 	/**
-	 * The object container for the disks that animate
-	 * @param {Number} radius Radius of disk
-	 * @param {[Number, Number]} xy cartesian coords of disk
+	 *
+	 * @param hex
+	 * @returns {Number}
 	 * @constructor
 	 */
-	function Disk(radius, xy)
+	function Hex2Num(hex)
 	{
-		this.disk = document.createElement('div');
-		this.disk.className = 'disk';
-
-		this.setParams(radius, xy);
+		return parseInt(hex.replace(/^#/, ''), 16);
 	}
-
-	/**
-	 * Set the radius and cartesian coords of the disk
-	 * @param {Number} radius
-	 * @param {Number} xy
-	 * @returns {Disk}
-	 */
-	Disk.prototype.setParams = function(radius, xy)
-	{
-		this.disk.style.width = (radius * 2) + 'px';
-		this.disk.style.height = (radius * 2) + 'px';
-		this.disk.style.left = (xy[0] === radius ? 0 : (xy[0] - radius)) + 'px';
-		this.disk.style.top = (xy[1] === radius ? 0 : (xy[1] - radius)) + 'px';
-
-		return this;
-	};
 
 	/**
 	 * CSS styles that apply to the animated disks
@@ -124,7 +105,7 @@
 
 	/**
 	 * Run-time options that alter the behavior of the animation
-	 * @type {{duration: number, fps: number, ndisks_per_cycle: number, speed: number, frameRate: number, chillInterval: number}}
+	 * @type {{duration: number, fps: number, ndisks_per_cycle: number, speed: number, frameRate: number, chillInterval: number|undefined, mode: string}}
 	 */
 	var runOptions =
 	{
@@ -133,8 +114,81 @@
 		ndisks_per_cycle : 8,
 		speed            : 0.05,
 		frameRate        : 40.0, // duration * fps
-		chillInterval    : undefined
+		chillInterval    : undefined,
+		mode             : 'canvas' // can be 'dom' or 'canvas'
 	};
+
+	var runModeHelpers = {}, getGraphics;
+
+	if (runOptions.mode === 'canvas')
+	{
+		getGraphics = function()
+		{
+			return new PIXI.Graphics()
+				.beginFill(Hex2Num(diskStyles.backgroundColor))
+				.lineStyle(5, Hex2Num(diskStyles.borderColor), 1);
+		};
+
+		runModeHelpers.Graphics = getGraphics();
+
+		runModeHelpers.Reset = function()
+		{
+			runModeHelpers.Stage.removeChild(runModeHelpers.Graphics);
+			runModeHelpers.Graphics.clear();
+			runModeHelpers.Graphics = getGraphics();
+			runModeHelpers.Stage.addChild(runModeHelpers.Graphics);
+		};
+
+		runModeHelpers.Stage = new PIXI.Stage(0x000000);
+		runModeHelpers.Stage.addChild(runModeHelpers.Graphics);
+
+		runModeHelpers.Renderer = undefined;
+	}
+
+	/**
+	 * The object container for the disks that animate
+	 * @param {Number} radius Radius of disk
+	 * @param {[Number, Number]} xy cartesian coords of disk
+	 * @constructor
+	 */
+	function Disk(radius, xy)
+	{
+		if (runOptions.mode === 'dom')
+		{
+			this.disk = document.createElement('div');
+			this.disk.className = 'disk';
+
+			this.setParams(radius, xy);
+		}
+		else
+		{
+			this.disk = runModeHelpers.Graphics;
+
+			this.disk.drawCircle(
+				xy[0],// === radius ? 0 : (xy[0] - radius)),
+				xy[1],// === radius ? 0 : (xy[1] - radius)),
+				radius
+			);
+		}
+	}
+
+	/**
+	 * Set the radius and cartesian coords of the disk
+	 * @param {Number} radius
+	 * @param {Number} xy
+	 * @returns {Disk}
+	 */
+	Disk.prototype.setParams = runOptions.mode === 'dom'
+		? function(radius, xy)
+		{
+			this.disk.style.width = (radius * 2) + 'px';
+			this.disk.style.height = (radius * 2) + 'px';
+			this.disk.style.left = (xy[0] === radius ? 0 : (xy[0] - radius)) + 'px';
+			this.disk.style.top = (xy[1] === radius ? 0 : (xy[1] - radius)) + 'px';
+
+			return this;
+		}
+		: function(radius, xy) { return this; };
 
 	/**
 	 * Update the application stylesheet with the diskStyles rules
@@ -167,56 +221,94 @@
 	 */
 	var makeFrameMethod = (function bootstrap()
 	{
-		var edgeContainer = document.getElementById('container'),
-			centeringElem = document.createElement('div');
-
-		centeringElem.className = 'center';
-
-		var circle1 = new Disk(0.65 * diskOptions.width, [0.65 * diskOptions.width, 0.65 * diskOptions.width]),
-			circle2 = new Disk(0.42 * diskOptions.width, [0.42 * diskOptions.width, 0.42 * diskOptions.width]);
-
-		circle1.disk.id = 'circle1';
-		circle2.disk.id = 'circle2';
-		circle1.disk.className = '';
-		circle2.disk.className = '';
-
-		circle2.disk.appendChild(centeringElem);
-		circle1.disk.appendChild(circle2.disk);
-		edgeContainer.appendChild(circle1.disk);
-
-		var delay_between_disks = 1.0 * runOptions.duration / 2 / runOptions.ndisks_per_cycle,
+		var delay_between_disks = runOptions.duration / 2 / runOptions.ndisks_per_cycle,
 			total_number_of_disks = parseInt(runOptions.ndisks_per_cycle / runOptions.speed, 10),
 			start = 1.0 / runOptions.speed;
 
-		var disks = [];
-		for (var i = 0; i < total_number_of_disks; i++)
-		{
-			disks.push(new Disk(0, [0, 0]));
-			centeringElem.appendChild(disks[i].disk);
-		}
+		var container = document.getElementById('container'),
+			centeringElem = document.createElement('div');
 
-		function make_frame(t)
+		if (runOptions.mode === 'dom')
 		{
-			var angle, radius, cartCoords, color, circle;
+			centeringElem.className = 'center';
 
+			var circle1 = new Disk(0.65 * diskOptions.width, [0.65 * diskOptions.width, 0.65 * diskOptions.width]),
+				circle2 = new Disk(0.42 * diskOptions.width, [0.42 * diskOptions.width, 0.42 * diskOptions.width]);
+
+			circle1.disk.id = 'circle1';
+			circle2.disk.id = 'circle2';
+			circle1.disk.className = '';
+			circle2.disk.className = '';
+
+			circle2.disk.appendChild(centeringElem);
+			circle1.disk.appendChild(circle2.disk);
+			container.appendChild(circle1.disk);
+
+			var disks = [];
 			for (var i = 0; i < total_number_of_disks; i++)
 			{
-				angle = (Math.PI / runOptions.ndisks_per_cycle) * (total_number_of_disks - i - 1);
-				radius = Math.max(0, 0.05 * (t + start - delay_between_disks * (total_number_of_disks - i - 1)));
-
-				cartCoords = polar2cart(radius, angle);
-				cartCoords[0] = (cartCoords[0] + 0.5) * diskOptions.width;
-				cartCoords[1] = (cartCoords[1] + 0.5) * diskOptions.width;
-
-				color = ((i / runOptions.ndisks_per_cycle) % 1.0);
-
-				circle = disks[i].setParams(0.3 * diskOptions.width, cartCoords).disk;
-
-				//circle.style.borderColor = diskStyles.borderColor;
-				//circle.style.backgroundColor = diskStyles.backgroundColor;
-				circle.style.opacity = diskOptions.opacity ? color : 1;
+				disks.push(new Disk(0, [0, 0]));
+				centeringElem.appendChild(disks[i].disk);
 			}
 		}
+		else
+		{
+			runModeHelpers.Renderer = new PIXI.autoDetectRenderer(
+				0.65 * diskOptions.width * 2,
+				0.65 * diskOptions.width * 2,
+				null, // view
+				false, // transparent
+				true // antialias
+			);
+			runModeHelpers.Renderer.view.id = 'canvas';
+			container.appendChild(runModeHelpers.Renderer.view);
+
+			runModeHelpers.Renderer.render(runModeHelpers.Stage);
+		}
+
+		var make_frame = runOptions.mode === 'dom'
+			? function(t)
+			{
+				var angle, radius, cartCoords, color, circle;
+
+				for (var i = 0; i < total_number_of_disks; i++)
+				{
+					angle = (Math.PI / runOptions.ndisks_per_cycle) * (total_number_of_disks - i - 1);
+					radius = Math.max(0, 0.05 * (t + start - delay_between_disks * (total_number_of_disks - i - 1)));
+
+					cartCoords = polar2cart(radius, angle);
+					cartCoords[0] = (cartCoords[0] + 0.5) * diskOptions.width;
+					cartCoords[1] = (cartCoords[1] + 0.5) * diskOptions.width;
+
+					color = ((i / runOptions.ndisks_per_cycle) % 1.0);
+
+					circle = disks[i].setParams(0.3 * diskOptions.width, cartCoords, i).disk;
+
+					circle.style.opacity = diskOptions.opacity ? color : 1;
+				}
+			}
+		    : function(t)
+		    {
+			    var angle, radius, cartCoords, color;
+
+			    runModeHelpers.Reset();
+
+			    for (var i = 0; i < total_number_of_disks; i++)
+			    {
+				    angle = (Math.PI / runOptions.ndisks_per_cycle) * (total_number_of_disks - i - 1);
+				    radius = Math.max(0, 0.05 * (t + start - delay_between_disks * (total_number_of_disks - i - 1)));
+
+				    cartCoords = polar2cart(radius, angle);
+				    cartCoords[0] = (cartCoords[0] + 0.5) * diskOptions.width;
+				    cartCoords[1] = (cartCoords[1] + 0.5) * diskOptions.width;
+
+				    color = ((i / runOptions.ndisks_per_cycle) % 1.0);
+
+				    new Disk(0.3 * diskOptions.width, cartCoords);
+			    }
+
+			    runModeHelpers.Renderer.render(runModeHelpers.Stage);
+		    }
 
 		return make_frame;
 	})();
@@ -225,32 +317,24 @@
 	 * Start the application loop.
 	 * @param {Function} make_frame The method returned from bootstrap().
 	 */
-	function run(make_frame)
+	function run()
 	{
-		if (run.interval)
+		run.t = run.t || 0;
+
+		var frame = run.t / runOptions.fps;
+		if (run.t === runOptions.frameRate)
 		{
-			window.clearInterval(run.interval);
+			run.t = 0;
 		}
 
-		run.t = run.t || 0;
-		run.interval = window.setInterval(function()
-		{
-			if (!diskOptions.running)
-			{
-				return;
-			}
+		run.make_frame(frame);
 
-			var frame = run.t / runOptions.fps;
-			if (run.t === runOptions.frameRate)
-			{
-				run.t = 0;
-			}
+		run.t++;
 
-			make_frame(frame);
-
-			run.t++;
-		}, runOptions.frameRate);
+		requestAnimFrame(run);
 	}
+
+	run.make_frame = makeFrameMethod;
 
 	/**
 	 * Bootstrap the options dialog
@@ -444,5 +528,5 @@
 		/* #endregion */
 	})();
 
-	run(makeFrameMethod);
+	run();
 })();
