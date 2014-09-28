@@ -387,7 +387,7 @@
 			// start the colors at a random interval
 			var i = Math.floor(Math.random() * 256),
 				increase = true,
-				interval = 5,
+				interval = 10,
 				calls = 0;
 			function run()
 			{
