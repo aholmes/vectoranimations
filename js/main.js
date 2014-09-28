@@ -384,11 +384,17 @@
 
 			if (this.checked === false) return;
 
-			var i = 0, interval = 10, calls = 0;
+			// start the colors at a random interval
+			var i = Math.floor(Math.random() * 256),
+				increase = true,
+				interval = 5,
+				calls = 0;
 			function run()
 			{
+				// disable chill mode
 				if (self.checked === false) return;
 
+				// only change the color every 10th repaint.
 				if (calls === interval)
 				{
 					calls = 0;
@@ -401,7 +407,11 @@
 
 				if (i === 255)
 				{
-					i = 0;
+					increase = false;
+				}
+				else if (i === 0)
+				{
+					increase = true;
 				}
 
 				// good reference on this: http://krazydad.com/tutorials/makecolors.php
@@ -421,7 +431,8 @@
 				diskStyles.borderColor = borderHexValue;
 				updateStylesheet();
 
-				i++;
+				i = i + (increase ? 1 : -1);
+
 				return requestAnimFrame(run);
 			}
 
