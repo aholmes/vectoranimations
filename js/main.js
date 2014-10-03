@@ -1,6 +1,16 @@
-(function()
+domContentLoaded = function ()
 {
 	'use strict';
+
+	if (typeof jscolor === 'undefined')
+	{
+		var scripts = document.getElementsByTagName('script'), lastScript = scripts[scripts.length - 1];
+		var s = document.createElement('script');
+		s.src = 'js/vendor/jscolor/jscolor.js';
+		lastScript.parentNode.insertBefore(s, lastScript.nextSibling);
+		s.onload = s.onreadystatechange = domContentLoaded;
+		return;
+	}
 
 	/**
 	 * Copy an object onto a new one
@@ -122,7 +132,7 @@
 
 	if (runOptions.mode === 'canvas')
 	{
-		getGraphics = function()
+		getGraphics = function ()
 		{
 			return new PIXI.Graphics()
 				.beginFill(Hex2Num(diskStyles.backgroundColor), diskStyles.opacity)
@@ -131,7 +141,7 @@
 
 		runModeHelpers.Graphics = getGraphics();
 
-		runModeHelpers.Reset = function()
+		runModeHelpers.Reset = function ()
 		{
 			runModeHelpers.Stage.removeChild(runModeHelpers.Graphics);
 			runModeHelpers.Graphics.clear();
@@ -179,23 +189,31 @@
 	 * @returns {Disk}
 	 */
 	Disk.prototype.setParams = runOptions.mode === 'dom'
-		? function(radius, xy)
-		{
-			this.disk.style.width = (radius * 2) + 'px';
-			this.disk.style.height = (radius * 2) + 'px';
-			this.disk.style.left = (xy[0] === radius ? 0 : (xy[0] - radius)) + 'px';
-			this.disk.style.top = (xy[1] === radius ? 0 : (xy[1] - radius)) + 'px';
+		? function (radius, xy)
+	{
+		this.disk.style.width = (radius * 2) + 'px';
+		this.disk.style.height = (radius * 2) + 'px';
+		this.disk.style.left = (xy[0] === radius ? 0 : (xy[0] - radius)) + 'px';
+		this.disk.style.top = (xy[1] === radius ? 0 : (xy[1] - radius)) + 'px';
 
-			return this;
-		}
-		: function(radius, xy) { return this; };
+		return this;
+	}
+		: function (radius, xy)
+	{
+		return this;
+	};
 
 	/**
 	 * Update the application stylesheet with the diskStyles rules
 	 */
 	var updateStylesheet = (function bootstrapStylesheet()
 	{
-		if (runOptions.mode !== 'dom') return function(){};
+		if (runOptions.mode !== 'dom')
+		{
+			return function ()
+			{
+			};
+		}
 
 		var stylesheet = document.getElementById('application-stylesheet').sheet;
 
@@ -209,7 +227,7 @@
 
 		insertRules();
 
-		return function()
+		return function ()
 		{
 			// overwrite the last rule entered
 			stylesheet.deleteRule(stylesheet.cssRules.length - 1);
@@ -265,56 +283,56 @@
 		}
 
 		var make_frame = runOptions.mode === 'dom'
-			? function(t)
+			? function (t)
+		{
+			var angle, radius, cartCoords, color, circle;
+
+			for (var i = 0; i < total_number_of_disks; i++)
 			{
-				var angle, radius, cartCoords, color, circle;
+				angle = (Math.PI / runOptions.ndisks_per_cycle) * (total_number_of_disks - i - 1);
+				radius = Math.max(0, 0.05 * (t + start - delay_between_disks * (total_number_of_disks - i - 1)));
 
-				for (var i = 0; i < total_number_of_disks; i++)
+				cartCoords = polar2cart(radius, angle);
+				cartCoords[0] = (cartCoords[0] + 0.5) * parseInt(circle2.disk.style.width, 10);
+				cartCoords[1] = (cartCoords[1] + 0.5) * parseInt(circle2.disk.style.height, 10);
+
+				color = ((i / runOptions.ndisks_per_cycle) % 1.0);
+
+				circle = disks[i].setParams(0.3 * diskOptions.width, cartCoords, i).disk;
+
+				circle.style.opacity = diskOptions.opacity ? color : 1;
+			}
+		}
+			: function (t)
+		{
+			var angle, radius, cartCoords, color;
+
+			runModeHelpers.Reset();
+
+			for (var i = 0; i < total_number_of_disks; i++)
+			{
+				angle = (Math.PI / runOptions.ndisks_per_cycle) * (total_number_of_disks - i - 1);
+				radius = Math.max(0, 0.05 * (t + start - delay_between_disks * (total_number_of_disks - i - 1)));
+
+				cartCoords = polar2cart(radius, angle);
+				cartCoords[0] = (cartCoords[0] + 0.5) * runModeHelpers.Renderer.width;
+				cartCoords[1] = (cartCoords[1] + 0.5) * runModeHelpers.Renderer.height;
+
+				if (diskOptions.opacity)
 				{
-					angle = (Math.PI / runOptions.ndisks_per_cycle) * (total_number_of_disks - i - 1);
-					radius = Math.max(0, 0.05 * (t + start - delay_between_disks * (total_number_of_disks - i - 1)));
-
-					cartCoords = polar2cart(radius, angle);
-					cartCoords[0] = (cartCoords[0] + 0.5) * parseInt(circle2.disk.style.width, 10);
-					cartCoords[1] = (cartCoords[1] + 0.5) * parseInt(circle2.disk.style.height, 10);
-
 					color = ((i / runOptions.ndisks_per_cycle) % 1.0);
 
-					circle = disks[i].setParams(0.3 * diskOptions.width, cartCoords, i).disk;
-
-					circle.style.opacity = diskOptions.opacity ? color : 1;
+					runModeHelpers.Graphics
+						.endFill()
+						.beginFill(Hex2Num(diskStyles.backgroundColor), color)
+						.lineStyle(diskStyles.stroke, Hex2Num(diskStyles.borderColor), color);
 				}
+
+				new Disk(0.3 * diskOptions.width, cartCoords);
 			}
-		    : function(t)
-		    {
-			    var angle, radius, cartCoords, color;
 
-			    runModeHelpers.Reset();
-
-			    for (var i = 0; i < total_number_of_disks; i++)
-			    {
-				    angle = (Math.PI / runOptions.ndisks_per_cycle) * (total_number_of_disks - i - 1);
-				    radius = Math.max(0, 0.05 * (t + start - delay_between_disks * (total_number_of_disks - i - 1)));
-
-				    cartCoords = polar2cart(radius, angle);
-				    cartCoords[0] = (cartCoords[0] + 0.5) * runModeHelpers.Renderer.width;
-				    cartCoords[1] = (cartCoords[1] + 0.5) * runModeHelpers.Renderer.height;
-
-				    if (diskOptions.opacity)
-				    {
-					    color = ((i / runOptions.ndisks_per_cycle) % 1.0);
-
-						runModeHelpers.Graphics
-							.endFill()
-							.beginFill(Hex2Num(diskStyles.backgroundColor), color)
-							.lineStyle(diskStyles.stroke, Hex2Num(diskStyles.borderColor), color);
-				    }
-
-				    new Disk(0.3 * diskOptions.width, cartCoords);
-			    }
-
-			    runModeHelpers.Renderer.render(runModeHelpers.Stage);
-		    }
+			runModeHelpers.Renderer.render(runModeHelpers.Stage);
+		}
 
 		return make_frame;
 	})();
@@ -335,7 +353,12 @@
 
 		run.make_frame(frame);
 
-		run.t++;
+		// continue painting new frames when not running, but don't animate the disks
+		// this way, chill mode, with, and opacity can be changed when the frames are "still."
+		if (diskOptions.running)
+		{
+			run.t++;
+		}
 
 		requestAnimFrame(run);
 	}
@@ -352,25 +375,25 @@
 			hideOptions = document.getElementById('hide-options'),
 			showOptions = document.getElementById('show-options');
 
-		hideOptions.addEventListener('click', function(e)
+		hideOptions.addEventListener('click', function (e)
 		{
 			e.preventDefault();
 			options.className = 'hide';
 		});
 
-		showOptions.addEventListener('click', function(e)
+		showOptions.addEventListener('click', function (e)
 		{
 			e.preventDefault();
 			options.className = options.className.replace('hide', '');
 		});
 
 		/* #region checkboxes */
-		toggles.opacity.addEventListener('change', function()
+		toggles.opacity.addEventListener('change', function ()
 		{
 			diskOptions.opacity = this.checked;
 		});
 
-		toggles.running.addEventListener('change', function()
+		toggles.running.addEventListener('change', function ()
 		{
 			diskOptions.running = this.checked;
 		});
@@ -378,21 +401,28 @@
 		/**
 		 * Generate colors and enjoy the experience
 		 */
-		toggles.chill.addEventListener('change', function()
+		toggles.chill.addEventListener('change', function ()
 		{
 			var self = this;
 
-			if (this.checked === false) return;
+			if (this.checked === false)
+			{
+				return;
+			}
 
 			// start the colors at a random interval
 			var i = Math.floor(Math.random() * 256),
 				increase = true,
 				interval = 10,
 				calls = 0;
+
 			function run()
 			{
 				// disable chill mode
-				if (self.checked === false) return;
+				if (self.checked === false)
+				{
+					return;
+				}
 
 				// only change the color every 10th repaint.
 				if (calls === interval)
@@ -441,7 +471,7 @@
 		/* #endregion */
 
 		/* #region inverse checkbox and color inputs */
-		toggles.inverse.addEventListener('change', function(e)
+		toggles.inverse.addEventListener('change', function (e)
 		{
 			var temp = diskStyles.backgroundColor;
 			diskStyles.backgroundColor = diskStyles.borderColor;
@@ -456,7 +486,7 @@
 		toggles.colorbg.jscolor = new jscolor.color(toggles.colorbg,
 			{
 				hash              : true,
-				onImmediateChange : function()
+				onImmediateChange : function ()
 				{
 					diskStyles.backgroundColor = this.valueElement.value;
 					updateStylesheet();
@@ -466,7 +496,7 @@
 		toggles.colorborder.jscolor = new jscolor.color(toggles.colorborder,
 			{
 				hash              : true,
-				onImmediateChange : function()
+				onImmediateChange : function ()
 				{
 					diskStyles.borderColor = this.valueElement.value;
 					updateStylesheet();
@@ -475,23 +505,26 @@
 		/* #endregion */
 
 		/* #region sliders */
-		toggles.width.addEventListener('input', function()
+		toggles.width.addEventListener('input', function ()
 		{
 			diskOptions.width = this.value;
 		});
 		/* #endregion */
 
 		/* #region FPS slider and reverse toggle */
-		toggles.fps.addEventListener('input', function()
+		toggles.fps.addEventListener('input', function ()
 		{
 			toggles.reverse.checked = this.value < 0;
 
 			runOptions.fps = this.value;
 		});
 
-		toggles.reverse.addEventListener('change', function()
+		toggles.reverse.addEventListener('change', function ()
 		{
-			if (this.checked && runOptions.fps < 0) return;
+			if (this.checked && runOptions.fps < 0)
+			{
+				return;
+			}
 
 			runOptions.fps = runOptions.fps * -1;
 			toggles.fps.value = runOptions.fps;
@@ -507,18 +540,18 @@
 			runOptions  : copyObj({}, runOptions),
 			formOptions : {}
 		};
-		Array.prototype.forEach.call(toggles, function(e)
+		Array.prototype.forEach.call(toggles, function (e)
 		{
 			defaults.formOptions[e.name] = e.type === 'checkbox' ? e.checked : e.value;
 		});
 
-		buttons.reset.addEventListener('click', function()
+		buttons.reset.addEventListener('click', function ()
 		{
 			copyObj(diskStyles, defaults.diskStyles);
 			copyObj(diskOptions, defaults.diskOptions);
 			copyObj(runOptions, defaults.runOptions);
 
-			Array.prototype.forEach.call(toggles, function(e)
+			Array.prototype.forEach.call(toggles, function (e)
 			{
 				if (e.type === 'checkbox')
 				{
@@ -531,19 +564,22 @@
 			});
 		});
 
-		buttons.fullscreen.addEventListener('click', function()
+		buttons.fullscreen.addEventListener('click', function ()
 		{
 			var elem = document.getElementById('container').childNodes[0];
 			if (elem.requestFullscreen)
 			{
 				elem.requestFullscreen();
-			} else if (elem.msRequestFullscreen)
+			}
+			else if (elem.msRequestFullscreen)
 			{
 				elem.msRequestFullscreen();
-			} else if (elem.mozRequestFullScreen)
+			}
+			else if (elem.mozRequestFullScreen)
 			{
 				elem.mozRequestFullScreen();
-			} else if (elem.webkitRequestFullscreen)
+			}
+			else if (elem.webkitRequestFullscreen)
 			{
 				elem.webkitRequestFullscreen();
 			}
@@ -552,4 +588,7 @@
 	})();
 
 	run();
-})();
+};
+
+document.addEventListener('DOMContentLoaded', domContentLoaded, false);
+document.attachEvent ? document.attachEvent('onreadystatechange', domContentLoaded) : null;
